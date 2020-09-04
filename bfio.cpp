@@ -42,7 +42,29 @@ void bfio::open(const std::filesystem::__cxx11::path& path, bfio::OpenMode open_
     }
 }
 
-void bfio::write(const byte* buffer, size_t size) {
+size_t bfio::count_until_whitespace_or_eof() {
+    size_t count;
+    std::vector<char> chars;
+    chars.reserve(40);
+    chars.emplace_back(fgetc(m_fp));
+    for (count = 1 /* 1? */; !std::isspace(chars.back()); ++count) {
+        char tmp = fgetc(m_fp);
+        std::cout << "_" << tmp << "_ is not space ..." << std::endl;
+        if (tmp == EOF)
+            break;
+        else
+            chars.emplace_back(tmp);
+    }
+    std::reverse(chars.begin(), chars.end());
+    for (char& put_c : chars) {
+        std::cout << "putting back _" << put_c << "_" << std::endl;
+        ungetc(put_c, m_fp);
+    }
+    std::cout << "size: " << count << std::endl;
+    return count;
+}
+
+void bfio::write_raw(const byte* buffer, size_t size) {
     if (!(m_mode & bfio::WRITE)) {
         throw std::runtime_error("can't write to readonly file");
     }
@@ -58,54 +80,54 @@ void bfio::write(const byte* buffer, size_t size) {
     }
 }
 
-void bfio::write(const std::string& string) {
+void bfio::write_internal(const std::string& string) {
     auto [data, size] = as_byte_array<std::string::value_type>(string.c_str(), string.size());
-    write(data, size);
+            write_raw(data, size);
+}
+            
+            void bfio::write_internal(u8 uint8) {
+        auto [data, size] = make_byte_buffer_fmt("%hhu", uint8);
+                write_raw(data, size);
 }
 
-void bfio::write(u8 uint8) {
-    auto [data, size] = make_byte_buffer_fmt("%hhu", uint8);
-    write(data, size);
-}
-
-void bfio::write(i8 int8) {
+void bfio::write_internal(i8 int8) {
     auto [data, size] = make_byte_buffer_fmt("%hhi", int8);
-    write(data, size);
+    write_raw(data, size);
 }
 
-void bfio::write(bfio::u16 i) {
+void bfio::write_internal(bfio::u16 i) {
     auto [data, size] = make_byte_buffer_fmt("%hu", i);
-    write(data, size);
+    write_raw(data, size);
 }
 
-void bfio::write(bfio::i16 i) {
+void bfio::write_internal(bfio::i16 i) {
     auto [data, size] = make_byte_buffer_fmt("%hi", i);
-    write(data, size);
+    write_raw(data, size);
 }
 
-void bfio::write(bfio::u32 i) {
+void bfio::write_internal(bfio::u32 i) {
     auto [data, size] = make_byte_buffer_fmt("%u", i);
-    write(data, size);
+    write_raw(data, size);
 }
 
-void bfio::write(bfio::i32 i) {
+void bfio::write_internal(bfio::i32 i) {
     auto [data, size] = make_byte_buffer_fmt("%i", i);
-    write(data, size);
+    write_raw(data, size);
 }
 
-void bfio::write(bfio::u64 i) {
+void bfio::write_internal(bfio::u64 i) {
     auto [data, size] = make_byte_buffer_fmt("%lu", i);
-    write(data, size);
+    write_raw(data, size);
 }
 
-void bfio::write(bfio::i64 i) {
+void bfio::write_internal(bfio::i64 i) {
     auto [data, size] = make_byte_buffer_fmt("%li", i);
-    write(data, size);
+    write_raw(data, size);
 }
 
-void bfio::write(void* ptr) {
+void bfio::write_internal(void* ptr) {
     auto [data, size] = make_byte_buffer_fmt("%p", ptr);
-    write(data, size);
+    write_raw(data, size);
 }
 
 void bfio::write_char(char c, size_t count) {
@@ -116,5 +138,5 @@ void bfio::write_char(char c, size_t count) {
     for (size_t i = 0; i < count; ++i) {
         printme += tmp;
     }
-    write(printme);
+    write_internal(printme);
 }

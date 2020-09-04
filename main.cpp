@@ -9,7 +9,46 @@ struct Person {
     int health, stamina, mana;
 };
 
-int main(int, char**) {
+std::ostream& operator<<(std::ostream& os, const Person& p) {
+    return os << "Person: \n"
+              << "\tname = " << p.name << "\n"
+              << "\tage = " << p.age << "\n"
+              << "\thealth = " << p.health << "\n"
+              << "\tstamina = " << p.stamina << "\n"
+              << "\tmana = " << p.mana;
+}
+
+int main() {
+    bfio infile("person.in", bfio::READ);
+    bfio outfile("person.out", bfio::WRITE);
+
+    Person p;
+    while (!infile.reached_eof()) {
+        std::string key;
+        infile.read_until_any_of(key, { ' ', '=' });
+        infile.skip_all_of({ ' ', '=' });
+        if (key == "name") {
+            infile.read_line(p.name);
+        } else if (key == "age") {
+            infile.read(p.age);
+            infile.skip();
+        } else if (key == "stats") {
+            infile.read(p.health);
+            infile.skip_all_of({ ' ', ',' });
+            infile.read(p.stamina);
+            infile.skip_all_of({ ' ', ',' });
+            infile.read(p.mana);
+            infile.skip();
+        }
+    }
+
+    std::cout << p << std::endl;
+    
+    outfile.write("name=", p.name, "\nage=", p.age, "\nstats=", p.health, " ", p.stamina, " ", p.mana);
+}
+
+
+int wmain(int, char**) {
     bfio file;
     file.adopt(stdout, bfio::WRITE);
     file.write(std::string("8 bit:\n"));
@@ -58,9 +97,6 @@ int main(int, char**) {
             infile.read(person.age);
         } else if (key == "stats") {
             std::cout << "stats!" << std::endl;
-            //infile.read(person.health, bfio::Ignore(),
-            //    person.stamina, bfio::Ignore(),
-            //    person.mana);
             infile.read(person.health);
             infile.skip_all_of({ ' ' });
             infile.read(person.stamina);

@@ -184,28 +184,6 @@ private:
         read_internal(std::forward<Args>(args)...);
     }
 
-    size_t count_until_whitespace_or_eof() {
-        size_t count;
-        std::vector<char> chars;
-        chars.reserve(40);
-        chars.emplace_back(fgetc(m_fp));
-        for (count = 1 /* 1? */; !std::isspace(chars.back()); ++count) {
-            char tmp = fgetc(m_fp);
-            std::cout << "_" << tmp << "_ is not space ..." << std::endl;
-            if (tmp == EOF)
-                break;
-            else
-                chars.emplace_back(tmp);
-        }
-        std::reverse(chars.begin(), chars.end());
-        for (char& put_c : chars) {
-            std::cout << "putting back _" << put_c << "_" << std::endl;
-            ungetc(put_c, m_fp);
-        }
-        std::cout << "size: " << count << std::endl;
-        return count;
-    }
-
     template<typename... Args>
     void read_internal(std::string& s, Args&&... args) {
         s.clear();
@@ -216,10 +194,37 @@ private:
         ungetc(c, m_fp);
         read_internal(std::forward<Args>(args)...);
     }
+    
+    size_t count_until_whitespace_or_eof();
 
+
+    void write_raw(const byte* buffer, size_t size);
+    void write_internal(const std::string& string);
+    void write_internal(u8 uint8);
+    void write_internal(i8 int8);
+    void write_internal(u16 i);
+    void write_internal(i16 i);
+    void write_internal(u32 i);
+    void write_internal(i32 i);
+    void write_internal(u64 i);
+    void write_internal(i64 i);
+    void write_internal(void* ptr);
+    void write_char(char c, size_t count = 1);
+    
     template<typename STLContainerT, typename ValueT = decltype(STLContainerT::value_type)>
     static bool contains(const STLContainerT& container, ValueT value) {
         return std::find(container.begin(), container.end(), value) != container.end();
+    }
+
+    template<class T, typename... Args>
+    void write_start(T obj, Args&&... args) {
+        write_internal(obj);
+        write_start(std::forward<Args>(args)...);
+    }
+    
+    template<typename... Args>
+    void write_start(EndRead) {
+        // done :)
     }
 
 public:
@@ -234,6 +239,11 @@ public:
         } catch (const std::runtime_error& e) {
             throw;
         }
+    }
+
+    template<typename... Args>
+    void write(Args&&... args) {
+        write_start(std::forward<Args>(args)..., EndRead());
     }
 
     void skip(size_t count = 1) {
@@ -316,19 +326,6 @@ public:
     ~bfio() noexcept;
 
     void open(const std::filesystem::path& path, OpenMode open_modes);
-
-    void write(const byte* buffer, size_t size);
-    void write(const std::string& string);
-    void write(u8 uint8);
-    void write(i8 int8);
-    void write(u16 i);
-    void write(i16 i);
-    void write(u32 i);
-    void write(i32 i);
-    void write(u64 i);
-    void write(i64 i);
-    void write(void* ptr);
-    void write_char(char c, size_t count = 1);
 };
 
 

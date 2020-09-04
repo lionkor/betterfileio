@@ -11,8 +11,6 @@
 #include "bitops/bitops.h"
 
 #define BFIO_WHITESPACE '\t', ' ', '\n', '\r'
-#define fscanf FUCK
-#define scanf FUCK
 
 class bfio final
 {

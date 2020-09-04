@@ -6,6 +6,7 @@
 struct Person {
     std::string name;
     int age;
+    int health, stamina, mana;
 };
 
 int main(int, char**) {
@@ -35,7 +36,6 @@ int main(int, char**) {
     file.write((void*)&file);
     file.write_char('\n', 2);
 
-    file.write("enter u8: ");
     bfio infile("testin", bfio::READ);
 
     std::string section;
@@ -48,18 +48,24 @@ int main(int, char**) {
     std::string key;
 
     while (!infile.reached_eof()) {
-        infile.read_until_any_of(key, { '=', ' ', '\t' });
-        infile.skip_whitespace();
-        infile.skip(1);
-        infile.skip_whitespace();
+        infile.read_until_any_of(key, { '=', BFIO_WHITESPACE });
+        infile.skip_all_of({ '=', BFIO_WHITESPACE });
         if (key == "name") {
             std::cout << "name!" << std::endl;
             infile.read_line(person.name);
         } else if (key == "age") {
             std::cout << "age!" << std::endl;
             infile.read(person.age);
-        } else {
-            std::cout << "nope! it's _" << key << "_" << std::endl;
+        } else if (key == "stats") {
+            std::cout << "stats!" << std::endl;
+            //infile.read(person.health, bfio::Ignore(),
+            //    person.stamina, bfio::Ignore(),
+            //    person.mana);
+            infile.read(person.health);
+            infile.skip_all_of({ ' ' });
+            infile.read(person.stamina);
+            infile.skip_all_of({ ' ' });
+            infile.read(person.mana);
         }
     }
 
@@ -67,6 +73,9 @@ int main(int, char**) {
     std::cout << "section: " << section << "\n";
     std::cout << "name: " << person.name << "\n";
     std::cout << "age: " << person.age << "\n";
+    std::cout << "health: " << person.health << "\n";
+    std::cout << "stamina: " << person.stamina << "\n";
+    std::cout << "mana: " << person.mana << "\n";
 
 
     std::cout << "\n\nEND" << std::endl;

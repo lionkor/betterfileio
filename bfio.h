@@ -10,6 +10,10 @@
 #include <algorithm>
 #include "bitops/bitops.h"
 
+#define BFIO_WHITESPACE '\t', ' ', '\n', '\r'
+#define fscanf FUCK
+#define scanf FUCK
+
 class bfio final
 {
 public:
@@ -38,6 +42,7 @@ public:
         explicit Whitespace(size_t _count = 1)
             : count(_count) { }
     };
+
 
     struct Ignore {
         size_t count;
@@ -93,7 +98,7 @@ private:
 
     template<typename... Args>
     void read_internal(Whitespace space, Args&&... args) {
-        throw std::runtime_error("not implemented");
+        skip_all_of({ BFIO_WHITESPACE });
     }
 
     template<typename... Args>
@@ -114,85 +119,68 @@ private:
         }
         read_internal(std::forward<Args>(args)...);
     }
-    
-    template<typename... Args>
-    void read_internal(char& i, Args&&... args) {
-        auto ret = fscanf(m_fp, "%c", &i);
-        if (ret == EOF) {
-            throw std::runtime_error("couldn't parse value in fscanf");
-        }
-        read_internal(std::forward<Args>(args)...);
-    }
-    
+
     template<typename... Args>
     void read_internal(u8& i, Args&&... args) {
-        auto ret = fscanf(m_fp, "%hhu", &i);
-        if (ret == EOF) {
-            throw std::runtime_error("couldn't parse value in fscanf");
-        }
+        std::string str;
+        read_until_any_of(str, { BFIO_WHITESPACE });
+        i = static_cast<u8>(std::stoul(str));
         read_internal(std::forward<Args>(args)...);
     }
 
     template<typename... Args>
     void read_internal(i8& i, Args&&... args) {
-        auto ret = fscanf(m_fp, "%hhi", &i);
-        if (ret == EOF) {
-            throw std::runtime_error("couldn't parse value in fscanf");
-        }
+        std::string str;
+        read_until_any_of(str, { BFIO_WHITESPACE });
+        i = static_cast<i8>(std::stoi(str));
         read_internal(std::forward<Args>(args)...);
     }
 
     template<typename... Args>
     void read_internal(u16& i, Args&&... args) {
-        auto ret = fscanf(m_fp, "%hu", &i);
-        if (ret == EOF) {
-            throw std::runtime_error("couldn't parse value in fscanf");
-        }
+        std::string str;
+        read_until_any_of(str, { BFIO_WHITESPACE });
+        i = static_cast<u16>(std::stoul(str));
         read_internal(std::forward<Args>(args)...);
     }
 
     template<typename... Args>
     void read_internal(i16& i, Args&&... args) {
-        auto ret = fscanf(m_fp, "%hi", &i);
-        if (ret == EOF) {
-            throw std::runtime_error("couldn't parse value in fscanf");
-        }
+        std::string str;
+        read_until_any_of(str, { BFIO_WHITESPACE });
+        i = static_cast<i16>(std::stoi(str));
         read_internal(std::forward<Args>(args)...);
     }
 
     template<typename... Args>
     void read_internal(u32& i, Args&&... args) {
-        auto ret = fscanf(m_fp, "%u", &i);
-        if (ret == EOF) {
-            throw std::runtime_error("couldn't parse value in fscanf");
-        }
+        std::string str;
+        read_until_any_of(str, { BFIO_WHITESPACE });
+        i = static_cast<u32>(std::stoul(str));
         read_internal(std::forward<Args>(args)...);
     }
 
     template<typename... Args>
     void read_internal(i32& i, Args&&... args) {
-        auto ret = fscanf(m_fp, "%i", &i);
-        if (ret == EOF) {
-            throw std::runtime_error("couldn't parse value in fscanf");
-        }
+        std::string str;
+        read_until_any_of(str, { BFIO_WHITESPACE });
+        i = static_cast<i32>(std::stoi(str));
         read_internal(std::forward<Args>(args)...);
     }
 
     template<typename... Args>
     void read_internal(u64& i, Args&&... args) {
-        auto ret = fscanf(m_fp, "%lu", &i);
-        if (ret == EOF) {
-            throw std::runtime_error("couldn't parse value in fscanf");
-        }
+        std::string str;
+        read_until_any_of(str, { BFIO_WHITESPACE });
+        i = static_cast<u64>(std::stoul(str));
         read_internal(std::forward<Args>(args)...);
     }
 
     template<typename... Args>
     void read_internal(i64& i, Args&&... args) {
-        auto ret = fscanf(m_fp, "%li", &i);
-        if (ret == EOF) {
-            throw std::runtime_error("couldn't parse value in fscanf");
-        }
+        std::string str;
+        read_until_any_of(str, { BFIO_WHITESPACE });
+        i = static_cast<i64>(std::stol(str));
         read_internal(std::forward<Args>(args)...);
     }
 
@@ -239,10 +227,16 @@ public:
 
     template<typename... Args>
     void read(Args&&... args) {
-        read_internal(std::forward<Args>(args)..., EndRead());
+        try {
+            read_internal(std::forward<Args>(args)..., EndRead());
+        } catch (const std::invalid_argument& e) {
+            throw std::runtime_error(std::string("read/conversion failed due to invalid argument: ") + e.what());
+        } catch (const std::runtime_error& e) {
+            throw;
+        }
     }
 
-    void skip(size_t count) {
+    void skip(size_t count = 1) {
         read(bfio::Ignore(count));
     }
 
@@ -250,6 +244,13 @@ public:
         char c;
         while (isspace(c = fgetc(m_fp)))
             ;
+        ungetc(c, m_fp);
+    }
+
+    void skip_all_of(std::initializer_list<char> delims) {
+        char c;
+        while ((c = fgetc(m_fp)) != EOF && contains(delims, c)) {
+        }
         ungetc(c, m_fp);
     }
 

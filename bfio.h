@@ -8,8 +8,6 @@
 #include <cstdio>
 #include <vector>
 #include <algorithm>
-#include "bitops/bitops.h"
-
 #define BFIO_WHITESPACE '\t', ' ', '\n', '\r'
 
 class bfio final

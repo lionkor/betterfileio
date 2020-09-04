@@ -156,6 +156,16 @@ void bfio::write_raw(const byte* buffer, size_t size) {
     }
 }
 
+void bfio::read_raw(byte* buffer, size_t size) {
+    if (m_mode & bfio::WRITE) {
+        throw std::runtime_error("can't read from writeonly file");
+    }
+    auto ret = std::fread(buffer, sizeof(byte), size, m_fp);
+    if (ret != size) {
+        throw std::runtime_error("could not read desired size (unknown fwrite error)");
+    }
+}
+
 void bfio::write_internal(const std::string& string) {
     auto [data, size] = as_byte_array<std::string::value_type>(string.c_str(), string.size());
     write_raw(data, size);
@@ -207,6 +217,9 @@ void bfio::write_internal(void* ptr) {
 }
 
 void bfio::write_char(char c, size_t count) {
+    if (!(m_mode & bfio::WRITE)) {
+        throw std::runtime_error("can't write to readonly file");
+    }
     std::string printme;
     char tmp[2];
     tmp[0] = c;
@@ -218,10 +231,26 @@ void bfio::write_char(char c, size_t count) {
 }
 
 void bfio::skip(size_t count) {
+    if (m_mode & bfio::WRITE) {
+        throw std::runtime_error("can't read from writeonly file");
+    }
     read(bfio::Ignore(count));
 }
 
+void bfio::skip_whitespace() {
+    if (m_mode & bfio::WRITE) {
+        throw std::runtime_error("can't read from writeonly file");
+    }
+    char c;
+    while (isspace(c = fgetc(m_fp)))
+        ;
+    ungetc(c, m_fp);
+}
+
 void bfio::skip_all_of(std::initializer_list<char> delims) {
+    if (m_mode & bfio::WRITE) {
+        throw std::runtime_error("can't read from writeonly file");
+    }
     char c;
     while ((c = fgetc(m_fp)) != EOF && contains(delims, c)) {
     }
@@ -229,6 +258,9 @@ void bfio::skip_all_of(std::initializer_list<char> delims) {
 }
 
 void bfio::skip_until(char delim) {
+    if (m_mode & bfio::WRITE) {
+        throw std::runtime_error("can't read from writeonly file");
+    }
     char c;
     while ((c = fgetc(m_fp)) != EOF && c != delim) {
     }
@@ -236,6 +268,9 @@ void bfio::skip_until(char delim) {
 }
 
 void bfio::skip_line() {
+    if (m_mode & bfio::WRITE) {
+        throw std::runtime_error("can't read from writeonly file");
+    }
     // like skip_until \n, but consumes the \n
     char c;
     while ((c = fgetc(m_fp)) != EOF && c != '\n') {
@@ -243,6 +278,9 @@ void bfio::skip_line() {
 }
 
 void bfio::skip_until_any_of(std::initializer_list<char> delims) {
+    if (m_mode & bfio::WRITE) {
+        throw std::runtime_error("can't read from writeonly file");
+    }
     char c;
     while ((c = fgetc(m_fp)) != EOF && !contains(delims, c)) {
     }
@@ -250,6 +288,9 @@ void bfio::skip_until_any_of(std::initializer_list<char> delims) {
 }
 
 void bfio::read_until(std::string& s, char delim) {
+    if (m_mode & bfio::WRITE) {
+        throw std::runtime_error("can't read from writeonly file");
+    }
     s.clear();
     char c;
     while ((c = fgetc(m_fp)) != EOF && c != delim) {
@@ -259,6 +300,9 @@ void bfio::read_until(std::string& s, char delim) {
 }
 
 void bfio::read_until_any_of(std::string& s, std::initializer_list<char> delims) {
+    if (m_mode & bfio::WRITE) {
+        throw std::runtime_error("can't read from writeonly file");
+    }
     s.clear();
     char c;
     while ((c = fgetc(m_fp)) != EOF && !contains(delims, c)) {
@@ -268,6 +312,9 @@ void bfio::read_until_any_of(std::string& s, std::initializer_list<char> delims)
 }
 
 void bfio::read_line(std::string& s) {
+    if (m_mode & bfio::WRITE) {
+        throw std::runtime_error("can't read from writeonly file");
+    }
     // just like read_until \n, but consumes \n.
     s.clear();
     char c;
@@ -276,7 +323,17 @@ void bfio::read_line(std::string& s) {
     }
 }
 
+char bfio::peek() {
+    if (m_mode & bfio::WRITE) {
+        throw std::runtime_error("can't read from writeonly file");
+    }
+    char c = fgetc(m_fp);
+    ungetc(c, m_fp);
+    return c;
+}
+
 bool bfio::reached_eof() {
+    // TODO: Maybe throw if writeonly
     return feof(m_fp) != 0;
 }
 

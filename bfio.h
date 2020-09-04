@@ -88,8 +88,7 @@ private:
     void read_internal(u64& i);
     void read_internal(i64& i);
     void read_internal(std::string& s);
-
-    void write_raw(const byte* buffer, size_t size);
+    
     void write_internal(const std::string& string);
     void write_internal(u8 uint8);
     void write_internal(i8 int8);
@@ -143,6 +142,9 @@ public:
 
     template<typename... Args>
     void read(Args&&... args) {
+        if (m_mode & bfio::WRITE) {
+            throw std::runtime_error("can't read from writeonly file");
+        }
         try {
             read_start(std::forward<Args>(args)..., EndRead());
         } catch (const std::invalid_argument& e) {
@@ -159,12 +161,7 @@ public:
 
     void skip(size_t count = 1);
 
-    void skip_whitespace() {
-        char c;
-        while (isspace(c = fgetc(m_fp)))
-            ;
-        ungetc(c, m_fp);
-    }
+    void skip_whitespace();
 
     void skip_all_of(std::initializer_list<char> delims);
     void skip_until(char delim);
@@ -173,8 +170,13 @@ public:
     void read_until(std::string& s, char delim);
     void read_until_any_of(std::string& s, std::initializer_list<char> delims);
     void read_line(std::string& s);
+    
+    char peek();
 
     bool reached_eof();
+    
+    void write_raw(const byte* buffer, size_t size);
+    void read_raw(byte* buffer, size_t size);
 
     /// initialize, dont open anything
     bfio() noexcept;

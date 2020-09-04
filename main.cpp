@@ -45,6 +45,8 @@ int main() {
     std::cout << p << std::endl;
     
     outfile.write("name=", p.name, "\nage=", p.age, "\nstats=", p.health, " ", p.stamina, " ", p.mana);
+    std::string i;
+    outfile.read(i);
 }
 
 

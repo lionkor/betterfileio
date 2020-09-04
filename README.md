@@ -1,1 +1,3 @@
 # betterfileio
+
+A better filestream.

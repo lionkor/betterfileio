@@ -39,16 +39,13 @@ public:
 
     struct Whitespace {
         size_t count;
-        explicit Whitespace(size_t _count = 1)
-            : count(_count) { }
+        explicit Whitespace(size_t _count = 1);
     };
 
 
     struct Ignore {
         size_t count;
-        explicit Ignore(size_t _count = 1)
-            : count(_count) {
-        }
+        explicit Ignore(size_t _count = 1);
     };
 
     struct IgnoreLine {
@@ -72,131 +69,25 @@ private:
 
     /// ATTENTION: the resulting pointer is invalid when you call the function agaín
     template<typename... Args>
-    inline std::pair<const byte*, size_t> make_byte_buffer_fmt(const char* format_string, Args&&... args) {
-        // figure out size
-        auto size = std::snprintf(nullptr, 0, format_string, std::forward<Args>(args)...);
-        // we use a class-scope buffer here so we don't heap alloc necessarily every time we
-        // format.
-        if (m_format_buffer.size() < size_t(size + 1)) {
-            m_format_buffer.resize(size + 1);
-        }
-        std::fill(m_format_buffer.begin(), m_format_buffer.end(), '\0');
-        auto count = std::sprintf(m_format_buffer.data(), format_string, std::forward<Args>(args)...);
-        if (count != size) {
-            throw std::runtime_error("something went wrong writing format string");
-        }
-        return { reinterpret_cast<const byte*>(m_format_buffer.data()), count * sizeof(char) };
-    }
+    std::pair<const byte*, size_t> make_byte_buffer_fmt(const char* format_string, Args&&... args);
 
     struct EndRead {
     };
 
-    template<typename... Args>
-    void read_internal(EndRead) {
-        // end :)
-    }
-
-    template<typename... Args>
-    void read_internal(Whitespace space, Args&&... args) {
-        skip_all_of({ BFIO_WHITESPACE });
-    }
-
-    template<typename... Args>
-    void read_internal(Ignore ignore, Args&&... args) {
-        for (size_t i = 0; i < ignore.count; ++i) {
-            fgetc(m_fp);
-        }
-        read_internal(std::forward<Args>(args)...);
-    }
-
-    template<typename... Args>
-    void read_internal(IgnoreLine, Args&&... args) {
-        char c;
-        for (size_t i = 0; (c = fgetc(m_fp)) != EOF && c != '\n'; ++i) {
-        }
-        if (c != EOF) {
-            fgetc(m_fp);
-        }
-        read_internal(std::forward<Args>(args)...);
-    }
-
-    template<typename... Args>
-    void read_internal(u8& i, Args&&... args) {
-        std::string str;
-        read_until_any_of(str, { BFIO_WHITESPACE });
-        i = static_cast<u8>(std::stoul(str));
-        read_internal(std::forward<Args>(args)...);
-    }
-
-    template<typename... Args>
-    void read_internal(i8& i, Args&&... args) {
-        std::string str;
-        read_until_any_of(str, { BFIO_WHITESPACE });
-        i = static_cast<i8>(std::stoi(str));
-        read_internal(std::forward<Args>(args)...);
-    }
-
-    template<typename... Args>
-    void read_internal(u16& i, Args&&... args) {
-        std::string str;
-        read_until_any_of(str, { BFIO_WHITESPACE });
-        i = static_cast<u16>(std::stoul(str));
-        read_internal(std::forward<Args>(args)...);
-    }
-
-    template<typename... Args>
-    void read_internal(i16& i, Args&&... args) {
-        std::string str;
-        read_until_any_of(str, { BFIO_WHITESPACE });
-        i = static_cast<i16>(std::stoi(str));
-        read_internal(std::forward<Args>(args)...);
-    }
-
-    template<typename... Args>
-    void read_internal(u32& i, Args&&... args) {
-        std::string str;
-        read_until_any_of(str, { BFIO_WHITESPACE });
-        i = static_cast<u32>(std::stoul(str));
-        read_internal(std::forward<Args>(args)...);
-    }
-
-    template<typename... Args>
-    void read_internal(i32& i, Args&&... args) {
-        std::string str;
-        read_until_any_of(str, { BFIO_WHITESPACE });
-        i = static_cast<i32>(std::stoi(str));
-        read_internal(std::forward<Args>(args)...);
-    }
-
-    template<typename... Args>
-    void read_internal(u64& i, Args&&... args) {
-        std::string str;
-        read_until_any_of(str, { BFIO_WHITESPACE });
-        i = static_cast<u64>(std::stoul(str));
-        read_internal(std::forward<Args>(args)...);
-    }
-
-    template<typename... Args>
-    void read_internal(i64& i, Args&&... args) {
-        std::string str;
-        read_until_any_of(str, { BFIO_WHITESPACE });
-        i = static_cast<i64>(std::stol(str));
-        read_internal(std::forward<Args>(args)...);
-    }
-
-    template<typename... Args>
-    void read_internal(std::string& s, Args&&... args) {
-        s.clear();
-        char c;
-        while ((c = fgetc(m_fp)) != EOF && !std::isspace(c)) {
-            s += c;
-        }
-        ungetc(c, m_fp);
-        read_internal(std::forward<Args>(args)...);
-    }
-    
     size_t count_until_whitespace_or_eof();
 
+    void read_internal(Whitespace);
+    void read_internal(Ignore ignore);
+    void read_internal(IgnoreLine);
+    void read_internal(u8& i);
+    void read_internal(i8& i);
+    void read_internal(u16& i);
+    void read_internal(i16& i);
+    void read_internal(u32& i);
+    void read_internal(i32& i);
+    void read_internal(u64& i);
+    void read_internal(i64& i);
+    void read_internal(std::string& s);
 
     void write_raw(const byte* buffer, size_t size);
     void write_internal(const std::string& string);
@@ -209,11 +100,29 @@ private:
     void write_internal(u64 i);
     void write_internal(i64 i);
     void write_internal(void* ptr);
-    void write_char(char c, size_t count = 1);
-    
+
+
     template<typename STLContainerT, typename ValueT = decltype(STLContainerT::value_type)>
     static bool contains(const STLContainerT& container, ValueT value) {
         return std::find(container.begin(), container.end(), value) != container.end();
+    }
+
+
+    template<class T, typename... Args>
+    void read_start(T& obj, Args&&... args) {
+        read_internal(obj);
+        read_start(std::forward<Args>(args)...);
+    }
+
+    template<class T, typename... Args>
+    void read_start(T&& obj, Args&&... args) {
+        read_internal(std::forward<T>(obj));
+        read_start(std::forward<Args>(args)...);
+    }
+
+    template<typename... Args>
+    void read_start(EndRead) {
+        // done :)
     }
 
     template<class T, typename... Args>
@@ -221,7 +130,7 @@ private:
         write_internal(obj);
         write_start(std::forward<Args>(args)...);
     }
-    
+
     template<typename... Args>
     void write_start(EndRead) {
         // done :)
@@ -230,10 +139,12 @@ private:
 public:
     // public interface
 
+    void write_char(char c, size_t count = 1);
+
     template<typename... Args>
     void read(Args&&... args) {
         try {
-            read_internal(std::forward<Args>(args)..., EndRead());
+            read_start(std::forward<Args>(args)..., EndRead());
         } catch (const std::invalid_argument& e) {
             throw std::runtime_error(std::string("read/conversion failed due to invalid argument: ") + e.what());
         } catch (const std::runtime_error& e) {
@@ -246,9 +157,7 @@ public:
         write_start(std::forward<Args>(args)..., EndRead());
     }
 
-    void skip(size_t count = 1) {
-        read(bfio::Ignore(count));
-    }
+    void skip(size_t count = 1);
 
     void skip_whitespace() {
         char c;
@@ -257,76 +166,42 @@ public:
         ungetc(c, m_fp);
     }
 
-    void skip_all_of(std::initializer_list<char> delims) {
-        char c;
-        while ((c = fgetc(m_fp)) != EOF && contains(delims, c)) {
-        }
-        ungetc(c, m_fp);
-    }
+    void skip_all_of(std::initializer_list<char> delims);
+    void skip_until(char delim);
+    void skip_line();
+    void skip_until_any_of(std::initializer_list<char> delims);
+    void read_until(std::string& s, char delim);
+    void read_until_any_of(std::string& s, std::initializer_list<char> delims);
+    void read_line(std::string& s);
 
-    void skip_until(char delim) {
-        char c;
-        while ((c = fgetc(m_fp)) != EOF && c != delim) {
-        }
-        ungetc(c, m_fp);
-    }
-
-    void skip_line() {
-        // like skip_until \n, but consumes the \n
-        char c;
-        while ((c = fgetc(m_fp)) != EOF && c != '\n') {
-        }
-    }
-
-    void skip_until_any_of(std::initializer_list<char> delims) {
-        char c;
-        while ((c = fgetc(m_fp)) != EOF && !contains(delims, c)) {
-        }
-        ungetc(c, m_fp);
-    }
-
-    void read_until(std::string& s, char delim) {
-        s.clear();
-        char c;
-        while ((c = fgetc(m_fp)) != EOF && c != delim) {
-            s += c;
-        }
-        ungetc(c, m_fp);
-    }
-
-    void read_until_any_of(std::string& s, std::initializer_list<char> delims) {
-        s.clear();
-        char c;
-        while ((c = fgetc(m_fp)) != EOF && !contains(delims, c)) {
-            s += c;
-        }
-        ungetc(c, m_fp);
-    }
-
-    void read_line(std::string& s) {
-        // just like read_until \n, but consumes \n.
-        s.clear();
-        char c;
-        while ((c = fgetc(m_fp)) != EOF && c != '\n') {
-            s += c;
-        }
-    }
-
-    bool reached_eof() {
-        return feof(m_fp) != 0;
-    }
+    bool reached_eof();
 
     /// initialize, dont open anything
     bfio() noexcept;
     /// open from filesytem::path. OR together openmodes.
     bfio(const std::filesystem::path& path, OpenMode open_modes);
-
-    void adopt(FILE* file, OpenMode mode);
-
     ~bfio() noexcept;
 
+    void adopt(FILE* file, OpenMode mode);
     void open(const std::filesystem::path& path, OpenMode open_modes);
 };
+
+template<typename... Args>
+std::pair<const bfio::byte*, size_t> bfio::make_byte_buffer_fmt(const char* format_string, Args&&... args) {
+    // figure out size
+    auto size = std::snprintf(nullptr, 0, format_string, std::forward<Args>(args)...);
+    // we use a class-scope buffer here so we don't heap alloc necessarily every time we
+    // format.
+    if (m_format_buffer.size() < size_t(size + 1)) {
+        m_format_buffer.resize(size + 1);
+    }
+    std::fill(m_format_buffer.begin(), m_format_buffer.end(), '\0');
+    auto count = std::sprintf(m_format_buffer.data(), format_string, std::forward<Args>(args)...);
+    if (count != size) {
+        throw std::runtime_error("something went wrong writing format string");
+    }
+    return { reinterpret_cast<const byte*>(m_format_buffer.data()), count * sizeof(char) };
+}
 
 
 #endif // BFIO_H
